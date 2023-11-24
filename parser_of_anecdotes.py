@@ -1,4 +1,4 @@
-# import requests
+import requests
 from bs4 import BeautifulSoup as bs
 from selenium import webdriver
 
@@ -7,43 +7,44 @@ from database.models import db, Anecdotes
 from message_sender import bot
 
 URL = 'https://www.anekdot.ru/last/good/'
-PATH = 'C:/Users/USER/PycharmProjects/anecdot_bot/venv/Scripts/node_modules/phantomjs-prebuilt/lib/phantom/bin/phantomjs.exe'
 
 db_write = crud.create()
 db_clear = crud.clear()
 
 
-# def parser_from_requests(url: str) -> None:
-#     """
-#     Парсит текст с помощью  requests из тега div в список, сохраняет в файл.
-#     При ошибке соединения отправляет ошибку пользователю.
-#     """
-#     try:
-#         req = requests.get(url)
-#         if req.status_code != 200:
-#             raise Exception
-#         soup = bs(req.text, 'html.parser')
-#         anecdotes = soup.find_all(['div'], class_=['text'])
-#         list_of_anecdotes = [anecdote.text for anecdote in anecdotes]
-#         with open('anecdotes.txt', 'w+', encoding='utf-8') as file:
-#             for elem in list_of_anecdotes:
-#                 file.write(elem + '\n')
-#     except Exception as er:
-#         bot.send_message(chat_id=6377827844, text=er)
-#         with open('anecdotes.txt', 'w+', encoding='utf-8') as file:
-#             file.truncate(0)
+def parser_from_requests(url: str) -> None:
+    """
+    Парсит текст с помощью  requests из тега div в список, сохраняет в файл.
+    При ошибке соединения отправляет ошибку пользователю.
+    """
+    try:
+        req = requests.get(url)
+        if req.status_code != 200:
+            raise Exception
+        soup = bs(req.text, 'html.parser')
+        anecdotes = soup.find_all(['div'], class_=['text'])
+        list_of_anecdotes = [anecdote.text for anecdote in anecdotes]
+        with open('anecdotes.txt', 'w+', encoding='utf-8') as file:
+            for elem in list_of_anecdotes:
+                file.write(elem + '\n')
+    except Exception as er:
+        bot.send_message(chat_id=6377827844, text=er)
+        with open('anecdotes.txt', 'w+', encoding='utf-8') as file:
+            file.truncate(0)
 
 
 # parser_from_requests(url=URL)
 
 
 def parser_from_selenium(url: str) -> None:
-    """
-        Парсит текст и рейтинг с помощью selenium, сортирует по рейтингу, сохраняет в бд.
-        При ошибке отправляет оповещение пользователю.
-        """
+    """Парсит текст и рейтинг с помощью selenium, сортирует по рейтингу, сохраняет в бд."""
     anecdotes_list = []
-    browser = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    # browser = webdriver.Chrome()
+    browser = webdriver.Chrome(options=options)
     browser.get(url)
     html = browser.page_source
     soup = bs(html, 'html.parser')
@@ -62,10 +63,9 @@ def parser_from_selenium(url: str) -> None:
         anecdotes_list.append(anecdotes)
         anecdotes_list.sort(key=lambda el: el['anecdote_rate'], reverse=True)
 
-        print(anecdotes_list)
-
         db_clear(db, Anecdotes)
         db_write(db, Anecdotes, anecdotes_list)
+    browser.quit()
 
 
 parser_from_selenium(url=URL)
