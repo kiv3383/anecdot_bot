@@ -1,6 +1,10 @@
 import requests
 from bs4 import BeautifulSoup as bs
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
 
 from database.core import crud
 from database.models import db, Anecdotes
@@ -39,12 +43,14 @@ def parser_from_requests(url: str) -> None:
 def parser_from_selenium(url: str) -> None:
     """Парсит текст и рейтинг с помощью selenium, сортирует по рейтингу, сохраняет в бд."""
     anecdotes_list = []
-    options = webdriver.ChromeOptions()
+    #options = webdriver.ChromeOptions()
+    options = Options()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     # browser = webdriver.Chrome()
-    browser = webdriver.Chrome(options=options)
+    browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    #browser = webdriver.Chrome(options=options)
     browser.get(url)
     html = browser.page_source
     soup = bs(html, 'html.parser')
@@ -65,7 +71,9 @@ def parser_from_selenium(url: str) -> None:
 
         db_clear(db, Anecdotes)
         db_write(db, Anecdotes, anecdotes_list)
-    browser.quit()
+    #browser.quit()
+    print(browser.title)
+    browser.close()
 
 
 parser_from_selenium(url=URL)
